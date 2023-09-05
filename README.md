@@ -1,2 +1,2 @@
-# code-comment-clustering
-Clustering of code comments
+# code-comment-analysis
+
