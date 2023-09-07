@@ -6,4 +6,5 @@ torchaudio
 tqdm
 pandas
 numpy
+nltk
 python-dotenv
