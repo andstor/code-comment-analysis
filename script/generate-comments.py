@@ -14,10 +14,10 @@ set_seed(42)
 def main(args):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    tokenizer = AutoTokenizer.from_pretrained('andstor/gpt-j-6B-smart-contract', use_auth_token=os.environ['HF_TOKEN'])
-    model = AutoModelForCausalLM.from_pretrained('andstor/gpt-j-6B-smart-contract', use_auth_token=os.environ['HF_TOKEN'], pad_token_id=tokenizer.eos_token_id).to(device)
+    tokenizer = AutoTokenizer.from_pretrained('andstor/gpt-j-6B-smart-contract', token=os.environ['HF_TOKEN'])
+    model = AutoModelForCausalLM.from_pretrained('andstor/gpt-j-6B-smart-contract', token=os.environ['HF_TOKEN'], pad_token_id=tokenizer.eos_token_id).to(device)
 
-    datasets = load_dataset("andstor/smart_contract_code_comments", use_auth_token=os.environ['HF_TOKEN'])
+    datasets = load_dataset("andstor/smart_contract_code_comments", token=os.environ['HF_TOKEN'])
     shuffled_ds = datasets.shuffle(seed=42)
     dataset = shuffled_ds["test"]
 
