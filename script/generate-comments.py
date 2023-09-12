@@ -16,7 +16,8 @@ def main(args):
 
     tokenizer = AutoTokenizer.from_pretrained('andstor/gpt-j-6B-smart-contract', use_auth_token=os.environ['HF_TOKEN'])
     model = AutoModelForCausalLM.from_pretrained('andstor/gpt-j-6B-smart-contract', use_auth_token=os.environ['HF_TOKEN'], pad_token_id=tokenizer.eos_token_id).to(device)
-
+    model.eval()
+    
     datasets = load_dataset("andstor/smart_contract_code_comments", use_auth_token=os.environ['HF_TOKEN'])
     shuffled_ds = datasets.shuffle(seed=42)
     dataset = shuffled_ds["test"]
