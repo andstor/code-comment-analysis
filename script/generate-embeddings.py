@@ -200,7 +200,7 @@ def main():
                 row[column + '_pooled_max'] = max_reps.tolist()
             except Exception as e:
                 print(e)
-                raise e
+                continue
 
         with open(args.output_file, 'a') as outfile:
             outfile.write(json.dumps(row))
