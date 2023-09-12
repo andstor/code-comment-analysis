@@ -1,5 +1,7 @@
 
 from transformers import AutoTokenizer, AutoModel, set_seed, AutoConfig
+from accelerate import Accelerator
+
 import pandas as pd
 import torch
 import pandas as pd
@@ -104,30 +106,20 @@ def parse_args():
     
     return args
 
-def get_embedding(input_text, tokenizer, model):
-    #input_text = input_text.strip() # strip if you want to remove leading and trailing spaces
-    encoded_input = tokenizer(input_text, return_tensors='pt')
-    output = model(**encoded_input)
-    
-    token_reps = output.last_hidden_state.squeeze(0)
-
-    t_age_reps = torch.mean(token_reps, 0)
-    t_max_reps = torch.max(token_reps, 0)
-    t_max_reps = t_max_reps.values
-
-    t_age_reps = t_age_reps.detach().numpy()
-    t_max_reps = t_max_reps.detach().numpy()
-    #t_ave_reps = ','.join(map(str, t_ave_reps))
-    #t_max_reps = ','.join(map(str, t_max_reps))
-    return t_age_reps, t_max_reps
-
 
 def main():
     """
     Generate new data by sampling from the original data.
     """
-
     args = parse_args()
+
+    # Initialize accelerator
+    accelerator = Accelerator()
+    print("omg")
+    print(f'Num Processes: {accelerator.num_processes}; Device: {accelerator.device}; Process Index: {accelerator.process_index}')
+
+    print(accelerator.device)
+
 
     if args.seed is not None:
         set_seed(args.seed)
@@ -157,15 +149,10 @@ def main():
         args.model_name_or_path,
         from_tf=bool(".ckpt" in args.model_name_or_path),
         config=config,
-        token=os.environ['HF_TOKEN']
+        token=os.environ['HF_TOKEN'],
+        device_map="auto"
     )
     #model.eval() # not needed as from_pretrained() calls it already
-
-    print("Loading dataset...")
-    print(args.dataset_name)
-    print(args.dataset_config_name)
-    print(args.data_files)
-    print(args.dataset_split)
 
     dataset = load_dataset(path=args.dataset_name, name=args.dataset_config_name, data_files=args.data_files, split=args.dataset_split)
 
@@ -178,6 +165,26 @@ def main():
         text_column_names = [text_column_name]
         logger.warning(f"Using column {text_column_name} as text column.")
 
+
+    def get_embedding(input_text, tokenizer):
+        #input_text = input_text.strip() # strip if you want to remove leading and trailing spaces
+        encoded_input = tokenizer(input_text, return_tensors='pt')
+        encoded_input.to(accelerator.device)
+        output = model(**encoded_input)
+        
+        token_reps = output.last_hidden_state.squeeze(0)
+
+        t_age_reps = torch.mean(token_reps, 0)
+        t_max_reps = torch.max(token_reps, 0)
+        t_max_reps = t_max_reps.values
+
+        t_age_reps = t_age_reps.detach().cpu().numpy()
+        t_max_reps = t_max_reps.detach().cpu().numpy()
+        #t_ave_reps = ','.join(map(str, t_ave_reps))
+        #t_max_reps = ','.join(map(str, t_max_reps))
+        return t_age_reps, t_max_reps
+
+
     for row in tqdm(dataset, total=dataset.shape[0]):
         #g_code, o_code = row["generated"], row["func_code"]
         #if not g_code.strip() or not o_code.strip():
@@ -188,12 +195,12 @@ def main():
             try:
                 text = row[column]
                 # get code embeddings
-                avg_reps, max_reps = get_embedding(text, tokenizer, model)
+                avg_reps, max_reps = get_embedding(text, tokenizer)
                 row[column + '_pooled_avg'] = avg_reps.tolist()
                 row[column + '_pooled_max'] = max_reps.tolist()
             except Exception as e:
                 print(e)
-                continue
+                raise e
 
         with open(args.output_file, 'a') as outfile:
             outfile.write(json.dumps(row))
