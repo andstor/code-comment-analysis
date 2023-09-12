@@ -1,1 +1,10 @@
+transformers
+datasets
+torch
+torchvision
+torchaudio
+tqdm
+pandas
+numpy
+nltk
 python-dotenv

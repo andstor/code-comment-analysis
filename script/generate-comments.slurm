@@ -4,7 +4,7 @@
 #SBATCH --time=02-00:00:00         # Upper time limit for the job (DD-HH:MM:SS)
 #SBATCH --nodes=1               # Allocate 1 nodes for the job
 #SBATCH --cpus-per-task=1       # Allocate cores
-#SBATCH --gres=gpu:A100m40:1       # Allocate 1 GPU
+#SBATCH --gres=gpu:A100:1       # Allocate 1 GPU
 #SBATCH --job-name="COMMENTS"
 #SBATCH --output=gpt-comments-finetuned.out
 #SBATCH --mail-user=andr3.storhaug@gmail.com
