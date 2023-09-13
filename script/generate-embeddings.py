@@ -115,11 +115,6 @@ def main():
 
     # Initialize accelerator
     accelerator = Accelerator()
-    print("omg")
-    print(f'Num Processes: {accelerator.num_processes}; Device: {accelerator.device}; Process Index: {accelerator.process_index}')
-
-    print(accelerator.device)
-
 
     if args.seed is not None:
         set_seed(args.seed)
@@ -156,7 +151,6 @@ def main():
 
     dataset = load_dataset(path=args.dataset_name, name=args.dataset_config_name, data_files=args.data_files, split=args.dataset_split)
 
-    print("Dataset loaded!")
     column_names = dataset.column_names
     if args.text_column_names is not None:
         text_column_names = args.text_column_names
@@ -169,6 +163,10 @@ def main():
     def get_embedding(input_text, tokenizer):
         #input_text = input_text.strip() # strip if you want to remove leading and trailing spaces
         encoded_input = tokenizer(input_text, return_tensors='pt')
+        # if tokenized length > max_position_embeddings, return None
+        if encoded_input.input_ids.shape[1] > model.config.max_position_embeddings:
+            return None, None # Needed to avoid CUDA Runtime Error: device-side assert
+        
         encoded_input.to(accelerator.device)
         output = model(**encoded_input)
         
@@ -196,8 +194,12 @@ def main():
                 text = row[column]
                 # get code embeddings
                 avg_reps, max_reps = get_embedding(text, tokenizer)
+                if avg_reps is None or max_reps is None:
+                    continue
+
                 row[column + '_pooled_avg'] = avg_reps.tolist()
                 row[column + '_pooled_max'] = max_reps.tolist()
+                
             except Exception as e:
                 print(e)
                 continue
